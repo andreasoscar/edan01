@@ -19,10 +19,12 @@ public class Main {
 
         Store store = new Store();  // define FD store 
         int size = from_1.length; 
+        IntVar[][] destWays = new IntVar[n_dests_1][graph_size_1]; 
         int[] fromvec = new int[n_dests_1 + from_1.length];
         int[] tovec = new int[n_dests_1 + to_1.length];
         int[] costvec = new int[n_dests_1 + cost_1.length];
-
+        int[][][] costEdges = new int[n_dests_1][graph_size_1][graph_size_1];
+        
         //creating edges from dest node to the start node
         for(int i = 0; i < n_dests_1 + from_1.length; i++) {
             if(i < from_1.length){
@@ -41,45 +43,76 @@ public class Main {
         }
 
         for(int i = 0; i < n_dests_1 + from_1.length; i++){
-            if(i >= from_1.length){
-                costvec[i] = 0;
-            } else {
+            if(i < from_1.length){
                 costvec[i] = cost_1[i];
+            } else {
+                costvec[i] = 0;
             }
         }
 
-        IntVar[] verticiesFD = new IntVar[n_edges_1];
-
-        for(int i = 0; i < n_edges_1; i++){
-            verticiesFD[i] = new IntVar(store, "v"+i, 0, n_edges_1);
+        for(int i = 0; i < n_dests_1; i++){
+            for(int j = 0; j < graph_size_1; j++)
+                destWays[i][j] = new IntVar(store, "v"+(j+1));
         }
 
-       // Constraint ctr = new Subcircuit(verticiesFD);
 
-        //store.impose(ctr);
 
-        //System.out.println(store);
-
-         
-        IntVar a = new IntVar(store, "a", 1, 3); 
-        IntVar b = new IntVar(store, "b", 1, 3); 
-        IntVar c = new IntVar(store, "c", 1, 3); 
-        IntVar[] v = {a, b, c};
-        Constraint ctr = new Subcircuit(v); store.impose(ctr);
- 
-        System.out.println(store);
-
-        Search<IntVar> search =newDepthFirstSearch<IntVar>();
-        SelectChoicePoint<IntVar> select =newInputOrderSelect<IntVar>(store, v,newIndomainMin<IntVar>());
-        boolean result = search.labeling(store, select);
-        if( result ) { 
-            System.out.println("Solution: " + v[0]+", "+v[1] +", "+v[2] +", "+v[3]); 
+    
+        for(int i = 0; i < n_dests_1; i++){
+            for(int j = 0; j < fromvec.length; j++){
+                int from = fromvec[j];
+                int to = tovec[j];
+                destWays[i][from-1].addDom(to,to);
+                destWays[i][to-1].addDom(from,from);
+            }
         }
-        else{ 
-            System.out.println("***No"); 
+
+        for(int i = 0; i  < n_dests_1; i++){
+            for(int j = 0; j < graph_size_1; j++){
+                for(int k = 0; k < graph_size_1; k++){
+                    costEdges[i][j][k] = Integer.MAX_VALUE;
+                }
+            }
         }
- 
- 
+
+        for(int i = 0; i  < n_dests_1; i++){
+            for(int j = 0; j < fromvec.length; j++){
+                int from = fromvec[j];
+                for(int k = 0; k < fromvec.length; k++){
+                    int to = tovec[k];
+                    costEdges[i][from-1][to-1] = costvec[j];
+                    costEdges[i][to-1][from-1] = costvec[j];
+                }
+            }
+        }
+
+        for(int i = 0; i  < n_dests_1; i++){
+            for(int j = 0; j < graph_size_1; j++){
+                for(int k = 0; k < graph_size_1; k++){
+                    System.out.println(costEdges[i][j][k]);
+                }
+            }
+        }
+
+        for(int i = 0; i < n_dests_1; i++){
+            Constraint ctr = new Subcircuit(destWays[i]);
+            store.impose(ctr);
+        }
+
+
+        for(int i = 0; i < n_dests_1; i++){
+            for(int j = 0; j < graph_size_1; j++){
+                for(int k = 0; k < graph_size_1; k++){
+                    System.out.println(costEdges[i][j][k]);
+                }
+            }
+        }
+       
+        for(int i = 0; i < n_dests_1; i++){
+            Constraint ctr = new Subcircuit(destWays[i]);
+            store.impose(ctr);
+        }
+
         
     }
 }
